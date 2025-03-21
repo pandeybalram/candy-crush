@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candy Crush Game</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            text-align: center;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 5px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out;
+        }
+        .blast {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+        #score, #timer {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+        #game-over {
+            font-size: 30px;
+            color: red;
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Candy Crush Game</h1>
+    <h2 id="score">Score: 0</h2>
+    <h2 id="timer">Time: 60s</h2>
+    <div class="board" id="board"></div>
+    <h2 id="game-over">Game Over!</h2>
+    <script>
+        const board = document.getElementById("board");
+        const scoreDisplay = document.getElementById("score");
+        const timerDisplay = document.getElementById("timer");
+        const gameOverDisplay = document.getElementById("game-over");
+        const colors = ["red", "blue", "green", "yellow", "purple", "orange"];
+        const size = 8;
+        let grid = [];
+        let firstPick = null;
+        let score = 0;
+        let timeLeft = 60;
+        let timer;
+
+        function createBoard() {
+            for (let i = 0; i < size * size; i++) {
+                let cell = document.createElement("div");
+                cell.classList.add("cell");
+                let color = colors[Math.floor(Math.random() * colors.length)];
+                cell.style.backgroundColor = color;
+                cell.dataset.color = color;
+                cell.dataset.index = i;
+                cell.addEventListener("click", handleClick);
+                board.appendChild(cell);
+                grid.push(cell);
+            }
+        }
+
+        function handleClick(event) {
+            let cell = event.target;
+            if (!firstPick) {
+                firstPick = cell;
+                firstPick.style.border = "2px solid black";
+            } else {
+                swapColors(firstPick, cell);
+                firstPick.style.border = "none";
+                firstPick = null;
+                setTimeout(checkMatches, 300);
+            }
+        }
+
+        function swapColors(cell1, cell2) {
+            let tempColor = cell1.style.backgroundColor;
+            cell1.style.backgroundColor = cell2.style.backgroundColor;
+            cell2.style.backgroundColor = tempColor;
+        }
+
+        function checkMatches() {
+            let matched = new Set();
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size - 2; j++) {
+                    let index = i * size + j;
+                    let color = grid[index].style.backgroundColor;
+                    if (color && color === grid[index + 1].style.backgroundColor && color === grid[index + 2].style.backgroundColor) {
+                        matched.add(index);
+                        matched.add(index + 1);
+                        matched.add(index + 2);
+                    }
+                }
+            }
+            for (let i = 0; i < size - 2; i++) {
+                for (let j = 0; j < size; j++) {
+                    let index = i * size + j;
+                    let color = grid[index].style.backgroundColor;
+                    if (color && color === grid[index + size].style.backgroundColor && color === grid[index + 2 * size].style.backgroundColor) {
+                        matched.add(index);
+                        matched.add(index + size);
+                        matched.add(index + 2 * size);
+                    }
+                }
+            }
+            if (matched.size > 0) {
+                score += matched.size * 10;
+                scoreDisplay.innerText = "Score: " + score;
+                matched.forEach(index => {
+                    grid[index].classList.add("blast");
+                    setTimeout(() => {
+                        grid[index].style.backgroundColor = "white";
+                        grid[index].dataset.color = "";
+                    }, 300);
+                });
+                setTimeout(dropCandies, 500);
+            }
+        }
+
+        function dropCandies() {
+            for (let i = size * size - 1; i >= 0; i--) {
+                if (grid[i].style.backgroundColor === "white") {
+                    let aboveIndex = i - size;
+                    while (aboveIndex >= 0 && grid[aboveIndex].style.backgroundColor === "white") {
+                        aboveIndex -= size;
+                    }
+                    if (aboveIndex >= 0) {
+                        grid[i].style.backgroundColor = grid[aboveIndex].style.backgroundColor;
+                        grid[aboveIndex].style.backgroundColor = "white";
+                    } else {
+                        grid[i].style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    }
+                }
+            }
+            setTimeout(checkMatches, 300);
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                timerDisplay.innerText = "Time: " + timeLeft + "s";
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    gameOverDisplay.style.display = "block";
+                    board.style.pointerEvents = "none";
+                }
+            }, 1000);
+        }
+
+        createBoard();
+        startTimer();
+    </script>
+</body>
+</html>
